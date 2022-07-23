@@ -5,7 +5,7 @@ import face_recognition
 class ReconhecimentoService:
 
     @staticmethod
-    def comparar_faces(self, face_conhecida, face_desconhecida):
+    def comparar_faces(face_conhecida, face_desconhecida):
         # face conhecida
         face_conhecida_load = cv2.imread(face_conhecida)
         rgb_face_conhecida = cv2.cvtColor(face_conhecida_load, cv2.COLOR_BGR2RGB)
