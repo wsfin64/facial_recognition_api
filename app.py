@@ -2,12 +2,13 @@ from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
 from service.imagem_binaria_service import ImagemService
 from service.reconhecimento_service import ReconhecimentoService
+from os import environ
 
 
 app = Flask(__name__)
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:wlfc@localhost:5432/faces'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{environ.get("DB_USER")}:{environ.get("DB_PASS")}@{environ.get("DB_HOST")}:5432/{environ.get("DB_NAME")}'
 db = SQLAlchemy(app)
 
 imagem_service = ImagemService()
@@ -20,7 +21,6 @@ class Modelo(db.Model):
     id = db.Column(db.INTEGER, primary_key=True)
     nome = db.Column(db.String(50))
     url_foto = db.Column(db.String)
-    foto_binaria = db.Column(db.BINARY)
 
     # Formato de retorno
     def to_json(self):
@@ -31,10 +31,9 @@ class Modelo(db.Model):
 @app.route("/modelo", methods=["POST"])
 def criar_modelo():
     body = request.get_json()
-    imagem_binaria = imagem_service.encode_imagem(body['url_foto'])
 
     try:
-        modelo = Modelo(nome=body['nome'], url_foto=body['url_foto'], foto_binaria=imagem_binaria)
+        modelo = Modelo(nome=body['nome'], url_foto=body['url_foto'])
         db.session.add(modelo)
         db.session.commit()
 
@@ -73,7 +72,7 @@ def reconhecimento():
 
         for modelo in modelos:
 
-            face_conhecida = imagem_service.carregar_face_conhecida(modelo.foto_binaria)
+            face_conhecida = imagem_service.carregar_face_conhecida(imagem_service.encode_imagem(modelo.url_foto))
             face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body['foto']))
 
             resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
@@ -86,6 +85,42 @@ def reconhecimento():
 
     except IndexError as err:
         return jsonify({"Result": "Não foi possível fazer analise com imagem informada"}), 403
+
+# Atualizar
+@app.route("/modelo/<modelo_id>", methods=["PUT"])
+def atualizar_modelo(modelo_id):
+    dados_modelo = request.get_json()
+
+    modelo = Modelo.query.filter_by(id=modelo_id).first()
+
+    try:
+        for atributo in dados_modelo.keys():
+            if dados_modelo[atributo] != "":
+                if atributo == 'url_foto':
+                    modelo.url_foto = dados_modelo[atributo]
+                if atributo == 'nome':
+                    modelo.nome = dados_modelo[atributo]
+
+        db.session.add(modelo)
+        db.session.commit()
+        return jsonify({"modelo": modelo.to_json(), "message": "Modelo atualizada com sucesso"}), 200
+    except Exception as e:
+        print(f"Erro {e}")
+        return jsonify({"modelo": {}, "message": "erro ao atualizar modelo"}), 400
+
+
+# Deletar
+@app.route("/modelo/<modelo_id>", methods=["DELETE"])
+def deletar_modelo(modelo_id):
+    try:
+        modelo = Modelo.query.filter_by(id=modelo_id).first()
+        db.session.delete(modelo)
+        db.session.commit()
+
+        return jsonify({"modelo": modelo.to_json(), "message": "Modelo excluida com sucesso"}), 200
+    except Exception as e:
+        print(f"Erro: {e}")
+        return jsonify({"modelo": {}, "message": "modelo não encontrada"}), 404
 
 
 if __name__ == '__main__':

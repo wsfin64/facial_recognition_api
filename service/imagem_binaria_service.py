@@ -2,7 +2,6 @@ import base64
 import os.path
 from base64 import b64encode, b64decode
 import requests
-from PIL import Image
 from io import BytesIO
 
 
