@@ -1,5 +1,0 @@
-ERROR:root:Exception in main()
-Traceback (most recent call last):
-  File "/home/wellington/Documentos/projetos/chat/lambda_function.py", line 31, in <module>
-    exit(main())
-NameError: name 'main' is not defined

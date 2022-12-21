@@ -24,6 +24,7 @@ class ReconhecimentoService:
         # Face desconhecida
         face_desconhecida_load = cv2.imread(face_desconhecida)
         rgb_face_desconhecida = cv2.cvtColor(face_desconhecida_load, cv2.COLOR_BGR2RGB)
+        # in this case, the picture can have more than just nome face, so it's an array of faces
         encoding_face_desconhecida = face_recognition.face_encodings(rgb_face_desconhecida)
 
         for face in encoding_face_desconhecida:
