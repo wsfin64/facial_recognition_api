@@ -18,17 +18,17 @@ class ImageProcessor(object):
         self.image_type = ''
 
     @staticmethod
-    def rotate_image(image):
+    def rotate_image(image_path: str) -> None:
 
         logger.info("Rotate Image Function")
 
-        with open(image, 'rb') as file:
+        with open(image_path, 'rb') as file:
             imagem_binaria = file.read()
 
         img = Image.open(io.BytesIO(imagem_binaria))
         img = img.convert('RGB')
 
-        img.rotate(angle=90.0, expand=1).save(image)
+        img.rotate(angle=90.0, expand=1).save(image_path)
 
 
 

@@ -19,6 +19,8 @@ imagem_service = ImagemService()
 reconhecimento_service = ReconhecimentoService()
 
 logger = Logger()
+
+
 # Entidade
 class Modelo(db.Model):
     __tablename__ = 'tb_modelo'
@@ -58,7 +60,6 @@ def criar_modelo():
     except Exception as e:
         print(f"Erro: {e}")
         return jsonify({"Erro ao criar modelo"}), 400
-
 
 
 # Selecionar tudo
@@ -107,8 +108,7 @@ def reconhecimento():
                 if resp:
                     lista_resposta.append(modelo.to_json())
 
-        imagem_service.apagar_faces('conhecida.jpg')
-        imagem_service.apagar_faces('desconhecida.jpg')
+        imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
         logger.info({"Matched Models": lista_resposta})
         return jsonify({"Result": lista_resposta}), 200
 
@@ -121,6 +121,7 @@ def reconhecimento():
     except Exception as err:
         logger.error(err)
         return jsonify({"Result": "Não foi possível fazer analise com imagem informada"}), 403
+
 
 # Reconhecimento específico
 @app.route('/reconhecimento/individual', methods=['POST'])
@@ -145,8 +146,7 @@ def reconhecimento_por_id():
 
             resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
 
-            imagem_service.apagar_faces('conhecida.jpg')
-            imagem_service.apagar_faces('desconhecida.jpg')
+            imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
 
             for resp in resposta:
                 if resp:
@@ -164,6 +164,7 @@ def reconhecimento_por_id():
     except Exception as err:
         logger.error(err)
         return jsonify({"Result": "Não foi possível fazer analise com imagem informada"}), 403
+
 
 # Atualizar
 @app.route("/modelo/<modelo_id>", methods=["PUT"])
