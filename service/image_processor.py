@@ -18,17 +18,17 @@ class ImageProcessor(object):
         self.image_type = ''
 
     @staticmethod
-    def rotate_image(image):
+    def rotate_image(image_path: str) -> None:
 
         logger.info("Rotate Image Function")
 
-        with open(image, 'rb') as file:
+        with open(image_path, 'rb') as file:
             imagem_binaria = file.read()
 
         img = Image.open(io.BytesIO(imagem_binaria))
         img = img.convert('RGB')
 
-        img.rotate(angle=90.0, expand=1).save(image)
+        img.rotate(angle=90.0, expand=1).save(image_path)
 
 
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     for i in range(1):
         print("start")
 
-        with open('../joyce.jpg', 'rb') as file:
+        with open('../teste.jpg', 'rb') as file:
             imagem_binaria = file.read()
 
         img = Image.open(io.BytesIO(imagem_binaria))
@@ -90,13 +90,13 @@ if __name__ == '__main__':
         # osd = pytesseract.image_to_osd(img, output_type=pytesseract.Output.DICT, config=params)
         # print(str(osd))
 
-        img.rotate(angle=90.0, expand=1).save("../joyce.jpg")
+        img.rotate(angle=90.0, expand=1).save("../teste.jpg")
         print(f"Rotated {i}")
 
 
 
 
-        # with open("../joyce.jpg", 'wb') as file:
+        # with open("../teste.jpg", 'wb') as file:
         #     file.write(rotated)
 
         # rotated.show()
