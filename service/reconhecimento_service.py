@@ -44,7 +44,7 @@ class ReconhecimentoService:
         """
 
         image_processor = ImageProcessor()
-        face_locations = None
+        face_locations = []
 
         for i in range(4):
             image = face_recognition.load_image_file(picture_name)
@@ -54,7 +54,7 @@ class ReconhecimentoService:
             else:
                 break
 
-        if face_locations and len(face_locations) == 0:
+        if len(face_locations) == 0:
             logger.warning("No face detected")
             raise NoFaceDetectedException("No face detected")
 

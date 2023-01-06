@@ -65,25 +65,33 @@ def criar_modelo():
 # Selecionar tudo
 @app.route("/modelos", methods=["GET"])
 def listar_modelos():
-    logger.info("Listing models function")
-    lista_modelos = Modelo.query.all()
-    #print(lista_modelos)
+    try:
+        logger.info("Listing models function")
+        lista_modelos = Modelo.query.all()
+        #print(lista_modelos)
 
-    modelos_json = [modelo.to_json() for modelo in lista_modelos]
+        modelos_json = [modelo.to_json() for modelo in lista_modelos]
 
-    return jsonify(modelos_json), 200
+        return jsonify(modelos_json), 200
+    except Exception as e:
+        logger.error(e)
+        return jsonify({"Error": e}), 500
 
 
 @app.route("/modelo/<id_modelo>")
 def get_modelo_by_id(id_modelo):
     logger.info("Get model by id function")
-    modelo = Modelo.query.filter_by(id=id_modelo).first()
+    try:
+        modelo = Modelo.query.filter_by(id=id_modelo).first()
 
-    modelo_json = modelo.to_json()
+        modelo_json = modelo.to_json()
 
-    logger.info({"Model Found": modelo_json})
+        logger.info({"Model Found": modelo_json})
 
-    return jsonify(modelo_json), 200
+        return jsonify(modelo_json), 200
+    except Exception as e:
+        logger.error(e)
+        return jsonify({"Error": e}), 500
 
 
 @app.route('/reconhecimento', methods=['POST'])
