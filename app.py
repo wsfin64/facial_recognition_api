@@ -2,10 +2,13 @@
 from utils import Logger
 from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
-from service.imagem_binaria_service import ImagemService
-from service.reconhecimento_service import ReconhecimentoService
+from services.imagem_binaria_service import ImagemService
+from services.reconhecimento_service import ReconhecimentoService
 from os import environ
 from exceptions.no_face_detected_exception import NoFaceDetectedException
+import uuid
+from services.message_service import MessagePublisher
+from services.mongoService import MongoService
 
 
 app = Flask(__name__)
@@ -17,6 +20,7 @@ db = SQLAlchemy(app)
 
 imagem_service = ImagemService()
 reconhecimento_service = ReconhecimentoService()
+mongo_service = MongoService()
 
 logger = Logger()
 
@@ -96,29 +100,45 @@ def get_modelo_by_id(id_modelo):
 
 @app.route('/reconhecimento', methods=['POST'])
 def reconhecimento():
+
     logger.info("Recognition Function")
     try:
         body = request.get_json()
         logger.info({"Data received": body})
-        modelos = Modelo.query.all()
-        lista_resposta = []
-        face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body['foto']))
 
-        reconhecimento_service.detect_face(face_desconhecida)
+        body['processId'] = str(uuid.uuid4())
+        body['status'] = 'PENDING'
 
-        for modelo in modelos:
+        mongo_service.save_analysis(body)
+        print(body)
 
-            face_conhecida = imagem_service.carregar_face_conhecida(imagem_service.encode_imagem(modelo.url_foto))
+        message = MessagePublisher()
+        message.send_message(body)
 
-            resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
 
-            for resp in resposta:
-                if resp:
-                    lista_resposta.append(modelo.to_json())
+        return jsonify({"processId": body.get("processId"), "status": body.get('status')}), 200
 
-        imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
-        logger.info({"Matched Models": lista_resposta})
-        return jsonify({"Result": lista_resposta}), 200
+        ##### criar consumer #########
+
+        # modelos = Modelo.query.all()
+        # lista_resposta = []
+        # face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body['foto']))
+        #
+        # reconhecimento_service.detect_face(face_desconhecida)
+        #
+        # for modelo in modelos:
+        #
+        #     face_conhecida = imagem_service.carregar_face_conhecida(imagem_service.encode_imagem(modelo.url_foto))
+        #
+        #     resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
+        #
+        #     for resp in resposta:
+        #         if resp:
+        #             lista_resposta.append(modelo.to_json())
+        #
+        # imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
+        # logger.info({"Matched Models": lista_resposta})
+        # return jsonify({"Result": lista_resposta}), 200
 
     except IndexError as err:
         logger.error(err)

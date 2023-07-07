@@ -2,10 +2,10 @@ import io
 import time
 
 from PIL import Image, ImageFile
-from service.file_types import is_jpeg
+from services.file_types import is_jpeg
 import face_recognition
 import cv2
-import pytesseract
+# import pytesseract
 
 from utils import Logger
 
