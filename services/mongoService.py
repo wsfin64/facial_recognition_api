@@ -10,8 +10,7 @@ class MongoService(object):
         self.recognition_collection = self.db['recognitionAnalysis']
 
     def save_individual(self, payload: dict) -> dict:
-        payload['_id'] = str(uuid.uuid4())
-        payload["processId"] = str(uuid.uuid4())
+        payload['_id'] = payload.get('id')
         self.individual_collection.insert_one(payload)
         return payload
 
@@ -22,6 +21,11 @@ class MongoService(object):
     def find_all_individuals(self):
         results = self.individual_collection.find()
         return [result for result in results]
+
+    def find_individual_by_id(self, id):
+        result = self.individual_collection.find_one({"id": id})
+
+        return result
 
     def find_analysis_by_processId(self, processId):
         return self.recognition_collection.find_one({"processId": processId})

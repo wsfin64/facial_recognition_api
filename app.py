@@ -9,33 +9,21 @@ from exceptions.no_face_detected_exception import NoFaceDetectedException
 import uuid
 from services.message_service import MessagePublisher
 from services.mongoService import MongoService
+from entities.individual import Individual
 
 
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{environ.get("DB_USER")}:{environ.get("DB_PASS")}@{environ.get("DB_HOST")}:5432/{environ.get("DB_NAME")}'
-db = SQLAlchemy(app)
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+# app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{environ.get("DB_USER")}:{environ.get("DB_PASS")}@{environ.get("DB_HOST")}:5432/{environ.get("DB_NAME")}'
+# db = SQLAlchemy(app)
 
 imagem_service = ImagemService()
 reconhecimento_service = ReconhecimentoService()
 mongo_service = MongoService()
 
 logger = Logger()
-
-
-# Entidade
-class Modelo(db.Model):
-    __tablename__ = 'tb_modelo'
-    id = db.Column(db.INTEGER, primary_key=True)
-    nome = db.Column(db.String(50))
-    url_foto = db.Column(db.String)
-
-    # Formato de retorno
-    def to_json(self):
-        return {"id": self.id, "nome": self.nome, "url_foto": self.url_foto}
-
 
 # Cadastrar
 @app.route("/modelo", methods=["POST"])
@@ -50,13 +38,10 @@ def criar_modelo():
 
         reconhecimento_service.validate_image(body["url_foto"])
 
-        modelo = Modelo(nome=body['nome'], url_foto=body['url_foto'])
-        db.session.add(modelo)
-        db.session.commit()
+        individual = Individual(str(uuid.uuid4()), body.get("nome"), body.get("url_foto"), body.get("sexo"), body.get("data_nascimento"), body.get("nacionalidade"))
+        mongo_service.save_individual(individual.to_json())
 
-        logger.info(f"Model {modelo.nome} saved")
-
-        return jsonify({"modelo": modelo.to_json(), "mensagem": "Criado com sucesso!"}), 201
+        return jsonify({"modelo": individual.to_json(), "mensagem": "Criado com sucesso!"}), 201
 
     except NoFaceDetectedException as err:
         print(err)
@@ -71,10 +56,10 @@ def criar_modelo():
 def listar_modelos():
     try:
         logger.info("Listing models function")
-        lista_modelos = Modelo.query.all()
-        #print(lista_modelos)
 
-        modelos_json = [modelo.to_json() for modelo in lista_modelos]
+        lista_modelos = mongo_service.find_all_individuals()
+
+        modelos_json = [modelo for modelo in lista_modelos]
 
         return jsonify(modelos_json), 200
     except Exception as e:
@@ -85,15 +70,16 @@ def listar_modelos():
 @app.route("/modelo/<id_modelo>")
 def get_modelo_by_id(id_modelo):
     logger.info("Get model by id function")
+
     try:
-        modelo = Modelo.query.filter_by(id=id_modelo).first()
 
-        modelo_json = modelo.to_json()
+        modelo = mongo_service.find_individual_by_id(id_modelo)
 
-        logger.info({"Model Found": modelo_json})
+        logger.info({"Model Found": modelo})
 
-        return jsonify(modelo_json), 200
+        return jsonify(modelo), 200
     except Exception as e:
+        print(e)
         logger.error(e)
         return jsonify({"Error": e}), 500
 
