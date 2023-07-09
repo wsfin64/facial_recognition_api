@@ -29,7 +29,7 @@ class ReconhecimentoService:
         # Face desconhecida
         face_desconhecida_load = cv2.imread(face_desconhecida_path)
         rgb_face_desconhecida = cv2.cvtColor(face_desconhecida_load, cv2.COLOR_BGR2RGB)
-        # in this case, the picture can have more than just nome face, so it's an array of faces
+        # in this case, the picture can have more than just one face, so it's an array of faces
         encoding_face_desconhecida = face_recognition.face_encodings(rgb_face_desconhecida)
 
         for face in encoding_face_desconhecida:
@@ -76,7 +76,6 @@ class ReconhecimentoService:
             imagem_service = ImagemService()
             face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(payload['foto']))
 
-
             self.detect_face(face_desconhecida)
 
             for modelo in modelos:
@@ -96,6 +95,8 @@ class ReconhecimentoService:
             mongo_service.update_analysis(document_analysis)
             logger.info({"Updated Document": document_analysis})
             print({"Matched Models": lista_resposta, "processId": payload.get('processId')})
+
+        except NoFaceDetectedException as e:
+            raise e
         except Exception as e:
             raise e
-

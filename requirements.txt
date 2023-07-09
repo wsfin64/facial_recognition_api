@@ -7,7 +7,6 @@ opencv-python-headless
 Pillow
 psycopg2
 requests==2.28.1
-SQLAlchemy==1.4.39
 pika
 pymongo==4.4.0
 marshmallow

@@ -219,5 +219,23 @@ def deletar_modelo(modelo_id):
         return jsonify({"modelo": {}, "message": "modelo não encontrada"}), 404
 
 
+@app.route('/analysis/<processId>', methods=['GET'])
+def get_analysis_result(processId: str) -> dict:
+
+    try:
+        print('opa')
+        analysis = mongo_service.find_analysis_by_processId(processId)
+
+        print(analysis)
+
+        if analysis:
+            return jsonify({"Result": analysis}), 200
+
+        return jsonify({"Result": "No process was found with the informed processId"}), 404
+    except Exception as e:
+        print(e)
+        return jsonify({"message": "algo deu errado"}), 500
+
+
 if __name__ == '__main__':
     app.run()

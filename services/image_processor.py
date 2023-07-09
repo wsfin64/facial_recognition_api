@@ -81,7 +81,7 @@ if __name__ == '__main__':
     for i in range(1):
         print("start")
 
-        with open('../teste.jpg', 'rb') as file:
+        with open('../img/aria.jpg', 'rb') as file:
             imagem_binaria = file.read()
 
         img = Image.open(io.BytesIO(imagem_binaria))
@@ -90,7 +90,7 @@ if __name__ == '__main__':
         # osd = pytesseract.image_to_osd(img, output_type=pytesseract.Output.DICT, config=params)
         # print(str(osd))
 
-        img.rotate(angle=90.0, expand=1).save("../teste.jpg")
+        img.rotate(angle=90.0, expand=1).save("../img/aria.jpg")
         print(f"Rotated {i}")
 
 

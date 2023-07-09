@@ -28,7 +28,8 @@ class MongoService(object):
         return result
 
     def find_analysis_by_processId(self, processId):
-        return self.recognition_collection.find_one({"processId": processId})
+        result = self.recognition_collection.find_one({"processId": processId})
+        return result
 
     def update_analysis(self, payload: dict) -> dict:
         self.recognition_collection.update_one({"processId": payload.get("processId")}, {"$set": {"status": payload.get("status"), "modelsMatched": payload.get('modelsMatched')}})
