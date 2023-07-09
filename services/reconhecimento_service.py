@@ -66,19 +66,17 @@ class ReconhecimentoService:
         image = self.image_service.carregar_face_desconhecida(self.image_service.encode_imagem(url_foto))
         self.detect_face(image)
 
-    def recognize(self, payload):
+    def recognize(self, url_foto_desconhecida: str, lista_modelos_conhecida: list) -> list:
         try:
-            mongo_service = MongoService()
-            modelos = mongo_service.find_all_individuals()
-            document_analysis = mongo_service.find_analysis_by_processId(payload.get('processId'))
+
             lista_resposta = []
 
             imagem_service = ImagemService()
-            face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(payload['foto']))
+            face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(url_foto_desconhecida))
 
             self.detect_face(face_desconhecida)
 
-            for modelo in modelos:
+            for modelo in lista_modelos_conhecida:
 
                 face_conhecida = imagem_service.carregar_face_conhecida(
                     imagem_service.encode_imagem(modelo.get('url_foto')))
@@ -90,11 +88,8 @@ class ReconhecimentoService:
                         lista_resposta.append(modelo)
 
             imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
-            document_analysis["status"] = 'FINISHED'
-            document_analysis["modelsMatched"] = lista_resposta
-            mongo_service.update_analysis(document_analysis)
-            logger.info({"Updated Document": document_analysis})
-            print({"Matched Models": lista_resposta, "processId": payload.get('processId')})
+
+            return lista_resposta
 
         except NoFaceDetectedException as e:
             raise e

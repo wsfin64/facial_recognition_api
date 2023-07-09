@@ -19,6 +19,7 @@ class ImagemService:
         """Write the bytes into a .jpg file"""
         with open('conhecida.jpg', 'wb') as file:
             file.write(base64.b64decode(image_binaria))
+
             return 'conhecida.jpg'
 
     @staticmethod
@@ -26,6 +27,7 @@ class ImagemService:
         """Write the bytes into a .jpg file"""
         with open('desconhecida.jpg', 'wb') as file:
             file.write(base64.b64decode(image_binaria))
+
             return 'desconhecida.jpg'
 
     @staticmethod

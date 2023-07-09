@@ -134,6 +134,7 @@ def reconhecimento():
         return jsonify({"Result": f"{err}"}), 403
     except Exception as err:
         logger.error(err)
+        print(err)
         return jsonify({"Result": "Não foi possível fazer analise com imagem informada"}), 403
 
 
