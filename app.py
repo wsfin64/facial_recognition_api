@@ -223,10 +223,7 @@ def deletar_modelo(modelo_id):
 def get_analysis_result(processId: str) -> dict:
 
     try:
-        print('opa')
         analysis = mongo_service.find_analysis_by_processId(processId)
-
-        print(analysis)
 
         if analysis:
             return jsonify({"Result": analysis}), 200
