@@ -2,36 +2,28 @@
 from utils import Logger
 from flask import Flask, jsonify, Response, request
 from flask_sqlalchemy import SQLAlchemy
-from service.imagem_binaria_service import ImagemService
-from service.reconhecimento_service import ReconhecimentoService
+from services.imagem_binaria_service import ImagemService
+from services.reconhecimento_service import ReconhecimentoService
 from os import environ
 from exceptions.no_face_detected_exception import NoFaceDetectedException
+import uuid
+from services.message_service import MessagePublisher
+from services.mongoService import MongoService
+from entities.individual import Individual
 
 
 app = Flask(__name__)
 
 
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{environ.get("DB_USER")}:{environ.get("DB_PASS")}@{environ.get("DB_HOST")}:5432/{environ.get("DB_NAME")}'
-db = SQLAlchemy(app)
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+# app.config['SQLALCHEMY_DATABASE_URI'] = f'postgresql+psycopg2://{environ.get("DB_USER")}:{environ.get("DB_PASS")}@{environ.get("DB_HOST")}:5432/{environ.get("DB_NAME")}'
+# db = SQLAlchemy(app)
 
 imagem_service = ImagemService()
 reconhecimento_service = ReconhecimentoService()
+mongo_service = MongoService()
 
 logger = Logger()
-
-
-# Entidade
-class Modelo(db.Model):
-    __tablename__ = 'tb_modelo'
-    id = db.Column(db.INTEGER, primary_key=True)
-    nome = db.Column(db.String(50))
-    url_foto = db.Column(db.String)
-
-    # Formato de retorno
-    def to_json(self):
-        return {"id": self.id, "nome": self.nome, "url_foto": self.url_foto}
-
 
 # Cadastrar
 @app.route("/modelo", methods=["POST"])
@@ -46,13 +38,10 @@ def criar_modelo():
 
         reconhecimento_service.validate_image(body["url_foto"])
 
-        modelo = Modelo(nome=body['nome'], url_foto=body['url_foto'])
-        db.session.add(modelo)
-        db.session.commit()
+        individual = Individual(str(uuid.uuid4()), body.get("nome"), body.get("url_foto"), body.get("sexo"), body.get("data_nascimento"), body.get("nacionalidade"))
+        mongo_service.save_individual(individual.to_json())
 
-        logger.info(f"Model {modelo.nome} saved")
-
-        return jsonify({"modelo": modelo.to_json(), "mensagem": "Criado com sucesso!"}), 201
+        return jsonify({"modelo": individual.to_json(), "mensagem": "Criado com sucesso!"}), 201
 
     except NoFaceDetectedException as err:
         print(err)
@@ -65,52 +54,77 @@ def criar_modelo():
 # Selecionar tudo
 @app.route("/modelos", methods=["GET"])
 def listar_modelos():
-    logger.info("Listing models function")
-    lista_modelos = Modelo.query.all()
-    #print(lista_modelos)
+    try:
+        logger.info("Listing models function")
 
-    modelos_json = [modelo.to_json() for modelo in lista_modelos]
+        lista_modelos = mongo_service.find_all_individuals()
 
-    return jsonify(modelos_json), 200
+        modelos_json = [modelo for modelo in lista_modelos]
+
+        return jsonify(modelos_json), 200
+    except Exception as e:
+        logger.error(e)
+        return jsonify({"Error": e}), 500
 
 
 @app.route("/modelo/<id_modelo>")
 def get_modelo_by_id(id_modelo):
     logger.info("Get model by id function")
-    modelo = Modelo.query.filter_by(id=id_modelo).first()
 
-    modelo_json = modelo.to_json()
+    try:
 
-    logger.info({"Model Found": modelo_json})
+        modelo = mongo_service.find_individual_by_id(id_modelo)
 
-    return jsonify(modelo_json), 200
+        logger.info({"Model Found": modelo})
+
+        return jsonify(modelo), 200
+    except Exception as e:
+        print(e)
+        logger.error(e)
+        return jsonify({"Error": e}), 500
 
 
 @app.route('/reconhecimento', methods=['POST'])
 def reconhecimento():
+
     logger.info("Recognition Function")
     try:
         body = request.get_json()
         logger.info({"Data received": body})
-        modelos = Modelo.query.all()
-        lista_resposta = []
-        face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body['foto']))
 
-        reconhecimento_service.detect_face(face_desconhecida)
+        body['processId'] = str(uuid.uuid4())
+        body['status'] = 'PENDING'
 
-        for modelo in modelos:
+        mongo_service.save_analysis(body)
+        print(body)
 
-            face_conhecida = imagem_service.carregar_face_conhecida(imagem_service.encode_imagem(modelo.url_foto))
+        message = MessagePublisher()
+        message.send_message(body)
 
-            resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
 
-            for resp in resposta:
-                if resp:
-                    lista_resposta.append(modelo.to_json())
+        return jsonify({"processId": body.get("processId"), "status": body.get('status')}), 200
 
-        imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
-        logger.info({"Matched Models": lista_resposta})
-        return jsonify({"Result": lista_resposta}), 200
+        ##### criar consumer #########
+
+        # modelos = Modelo.query.all()
+        # lista_resposta = []
+        # face_desconhecida = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body['foto']))
+        #
+        # reconhecimento_service.detect_face(face_desconhecida)
+        #
+        # for modelo in modelos:
+        #
+        #     face_conhecida = imagem_service.carregar_face_conhecida(imagem_service.encode_imagem(modelo.url_foto))
+        #
+        #     resposta = reconhecimento_service.comparar_faces(face_conhecida, face_desconhecida)
+        #
+        #     for resp in resposta:
+        #         if resp:
+        #             lista_resposta.append(modelo.to_json())
+        #
+        # imagem_service.apagar_faces(['conhecida.jpg', 'desconhecida.jpg'])
+        # logger.info({"Matched Models": lista_resposta})
+        # return jsonify({"Result": lista_resposta}), 200
 
     except IndexError as err:
         logger.error(err)
@@ -203,6 +217,21 @@ def deletar_modelo(modelo_id):
     except Exception as e:
         print(f"Erro: {e}")
         return jsonify({"modelo": {}, "message": "modelo não encontrada"}), 404
+
+
+@app.route('/analysis/<processId>', methods=['GET'])
+def get_analysis_result(processId: str) -> dict:
+
+    try:
+        analysis = mongo_service.find_analysis_by_processId(processId)
+
+        if analysis:
+            return jsonify({"Result": analysis}), 200
+
+        return jsonify({"Result": "No process was found with the informed processId"}), 404
+    except Exception as e:
+        print(e)
+        return jsonify({"message": "algo deu errado"}), 500
 
 
 if __name__ == '__main__':

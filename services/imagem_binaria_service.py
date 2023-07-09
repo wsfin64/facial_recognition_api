@@ -29,7 +29,7 @@ class ImagemService:
             return 'desconhecida.jpg'
 
     @staticmethod
-    def apagar_faces(path: str | list) -> None:
+    def apagar_faces(path) -> None:
         if isinstance(path, str):
             if os.path.exists(path):
                 os.remove(path)
