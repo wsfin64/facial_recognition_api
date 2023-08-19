@@ -39,7 +39,8 @@ class ReconhecimentoService:
         return result
 
     @staticmethod
-    def detect_face(picture_path: str) -> None:
+    def detect_face(picture_path: str) -> int:
+        print("Detecting faces")
         """
         Detects if there is one or more faces in the picture
         """
@@ -60,6 +61,8 @@ class ReconhecimentoService:
             raise NoFaceDetectedException("No face detected")
 
         logger.info(f"{len(face_locations)} face(s) detected")
+
+        return len(face_locations)
 
     def validate_image(self, url_foto: str) -> None:
         logger.info("Validating image")

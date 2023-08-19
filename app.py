@@ -1,7 +1,6 @@
 
 from utils import Logger
 from flask import Flask, jsonify, Response, request
-from flask_sqlalchemy import SQLAlchemy
 from services.imagem_binaria_service import ImagemService
 from services.reconhecimento_service import ReconhecimentoService
 from os import environ
@@ -9,7 +8,8 @@ from exceptions.no_face_detected_exception import NoFaceDetectedException
 import uuid
 from services.message_service import MessagePublisher
 from services.mongoService import MongoService
-from entities.individual import Individual
+from entities.individual import IndividualSchema
+from marshmallow.exceptions import ValidationError
 
 
 app = Flask(__name__)
@@ -38,14 +38,17 @@ def criar_modelo():
 
         reconhecimento_service.validate_image(body["url_foto"])
 
-        individual = Individual(str(uuid.uuid4()), body.get("nome"), body.get("url_foto"), body.get("sexo"), body.get("data_nascimento"), body.get("nacionalidade"))
-        mongo_service.save_individual(individual.to_json())
+        individual = IndividualSchema().load(body)
+        individual['id'] = str(uuid.uuid4())
+        mongo_service.save_individual(individual)
 
-        return jsonify({"modelo": individual.to_json(), "mensagem": "Criado com sucesso!"}), 201
+        return jsonify({"modelo": individual, "mensagem": "Criado com sucesso!"}), 201
 
     except NoFaceDetectedException as err:
         print(err)
         return jsonify({"Result": f"Cannot save this picture, {err}"}), 403
+    except ValidationError as err:
+        return jsonify({"Error ao criar modelo": str(err)})
     except Exception as e:
         print(f"Erro: {e}")
         return jsonify({"Erro ao criar modelo"}), 400
@@ -90,9 +93,15 @@ def reconhecimento():
     logger.info("Recognition Function")
     try:
         body = request.get_json()
-        logger.info({"Data received": body})
+        print({"Data received": body})
+
+        foto = imagem_service.carregar_face_desconhecida(imagem_service.encode_imagem(body.get('foto')))
+
+        faces = reconhecimento_service.detect_face(foto)
+
 
         body['processId'] = str(uuid.uuid4())
+        body['facesDetected'] = faces
         body['status'] = 'PENDING'
 
         mongo_service.save_analysis(body)

@@ -2,6 +2,7 @@ import pymongo
 from pymongo import MongoClient
 import uuid
 
+
 class MongoService(object):
     def __init__(self):
         self.cluster = MongoClient('localhost', 27017)
@@ -12,9 +13,11 @@ class MongoService(object):
     def save_individual(self, payload: dict) -> dict:
         payload['_id'] = payload.get('id')
         self.individual_collection.insert_one(payload)
+        print({"model created": payload.get('id')})
         return payload
 
     def save_analysis(self, payload: dict) -> dict:
+        print('Saving analysis')
         payload['_id'] = payload.get('processId')
         self.recognition_collection.insert_one(payload)
 

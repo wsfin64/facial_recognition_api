@@ -11,11 +11,11 @@ class TestReconhecimentoService(TestCase):
 
     def test_detect_face(self):
 
-        self.assertEqual(self.reconhecimento_service.detect_face('../img/aria.jpg'), None)
+        self.assertEqual(self.reconhecimento_service.detect_face('../img/aria.jpg'), 1)
 
     def test_detect_face2(self):
 
-        self.assertEqual(self.reconhecimento_service.detect_face('../img/alicia.jpg'), None)
+        self.assertEqual(self.reconhecimento_service.detect_face('../img/alicia.jpg'), 1)
 
     def test_detect_face_no_face(self):
 

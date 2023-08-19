@@ -1,25 +1,27 @@
-from marshmallow import Schema, ValidationError, post_load, pre_load
+from marshmallow import Schema, ValidationError, post_load, pre_load, EXCLUDE, fields
 from dataclasses import dataclass
 
-@dataclass
-class Individual:
+def sex_validation(value):
+    if not len(value) == 1 or value not in ['F', 'M', 'f', 'm']:
+        raise ValidationError("Valor inválido, apenas os valores 'M' e 'F' são permitidos")
 
-    def __init__(self, id, nome, url_foto, sexo, data_nascimento, nacionalidade):
-        self.__id = id
-        self.__nome = nome
-        self.__url_foto = url_foto
-        self.__sexo = sexo
-        self.__data_nascimento = data_nascimento
-        self.__nacionalidade = str(nacionalidade).upper()
 
-    def to_json(self):
+class IndividualSchema(Schema):
 
-        return {
-            "id": self.__id,
-            "nome": self.__nome,
-            "url_foto": self.__url_foto,
-            "sexo": self.__sexo,
-            "data_nascimento": self.__data_nascimento,
-            "nacionalidade": self.__nacionalidade
-        }
+    class Meta:
+        unknown = EXCLUDE
 
+    _id = fields.Str(load_default=None)
+    id = fields.Str(load_default=None)
+    nome = fields.Str(required=True)
+    url_foto = fields.Str(required=True)
+    sexo = fields.Str(validate=sex_validation, required=True)
+    nacionalidade = fields.Str(required=True)
+    data_nascimento = fields.Str(required=True)
+
+    @post_load
+    def process_data(self, data, **kwargs):
+
+        data['sexo'] = data['sexo'].upper()
+        data['nacionalidade'] = data['nacionalidade'].upper()
+        return data
