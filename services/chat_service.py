@@ -6,6 +6,7 @@ class ChatService:
     def __init__(self, modelo_name):
         self.__modelo_name = modelo_name
         self._chat_url = "https://chaturbate.com/api/chatvideocontext/"
+        self._chat_url_bio_context = "https://chaturbate.com/api/biocontext/"
 
     def call_api(self):
 
